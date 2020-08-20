@@ -48,7 +48,7 @@
   gather_facts: False
 
   vars:
-   - MyMessage: "The HTML page of NGING was changed!"
+   - MyMessage: "The HTML page of nginx was changed!"
 
   pre_tasks:
   - name: install python
