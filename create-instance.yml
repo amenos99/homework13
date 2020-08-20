@@ -1,0 +1,63 @@
+---
+- hosts: local
+  connection: local
+  gather_facts: False
+
+  vars:
+    ami: ami-0dc2264cd927ca9eb
+    region: us-east-1
+    type: t2.micro
+    sshkey: mykeypair
+    vpcid: vpc-e6c1329b
+
+  tasks:
+  - name: create a new security group
+    ec2_group:
+      name: ansible-new-sec-group
+      description: " New Security Group for Ansible-created instances"
+      region: "{{ region }}"
+      vpc_id: "{{ vpcid }}" 
+      rules:
+        - proto: "tcp"
+          from_port: 22
+          to_port: 22
+          cidr_ip: "0.0.0.0/0"
+        - proto: "tcp"
+          from_port: 80
+          to_port: 80
+          cidr_ip: "0.0.0.0/0"        
+      rules_egress:
+        - proto: "all"
+          cidr_ip: "0.0.0.0/0"
+    register: secgrp
+
+  - name: provision an EC2 instance for NGINX
+    ec2:
+      key_name: "{{ sshkey }}"
+      group: "ansible-new-sec-group" 
+      instance_type: "{{ type }}"
+      ec2_region: "{{ region }}"
+      image: "{{ ami }}"
+      wait: true
+      instance_tags:
+        tool: "ansible"
+        env: "test"
+    register: ec2
+
+- hosts: aws
+  gather_facts: False
+
+  vars:
+   - MyMessage: "The HTML page of NGING was changed!"
+
+  pre_tasks:
+  - name: install python
+    apt: pkg=python state=latest update_cache=true
+  tasks: 
+  - name: Install nginx web server
+    apt: name=nginx state=latest update_cache=true  
+  - name: index.html copy
+    template: src=index.html.j2 dest=/usr/share/nginx/html/index.html
+
+
+
